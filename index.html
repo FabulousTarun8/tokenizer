@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#f2f0e9">
+<title>WORDSPACE — The anatomy of language models</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+:root{--paper:#f2f0e9;--ink:#202522;--muted:#747a70;--line:#d8d6cc;--card:#fbfaf6;--green:#176e61;--green2:#dcebe3;--coral:#d66b4f;--yellow:#e9c66a;--lav:#8b7da8;--mono:"DM Mono",monospace;--sans:"DM Sans",sans-serif;--display:"Manrope",sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.6 var(--sans);overflow-x:hidden}button,input,select,textarea{font:inherit}button{cursor:pointer}.container{max-width:1220px;margin:auto;padding:0 28px}section{padding:76px 0;border-bottom:1px solid var(--line)}h1,h2,h3,h4{font-family:var(--display);letter-spacing:-.04em;line-height:1.12;margin-top:0}h1{font-size:clamp(46px,7vw,88px);max-width:850px;margin:22px 0 20px;font-weight:800}h2{font-size:clamp(29px,4vw,42px);margin:8px 0 12px}h3{font-size:18px;margin-bottom:9px}p{color:var(--muted);margin:0 0 16px}.mono,code{font-family:var(--mono)}code{color:var(--green);background:#e5e8df;padding:2px 5px;border-radius:4px}.topbar{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:12px;font:800 14px var(--display);letter-spacing:.12em}.brandmark{width:34px;height:34px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:18px}.nav{display:flex;gap:22px}.nav a{color:var(--muted);text-decoration:none;font-size:12px;font-weight:700}.nav a:hover{color:var(--green)}.hero{padding:90px 0 66px;position:relative}.hero:after{content:"";position:absolute;width:340px;height:340px;border:1px solid #d5d2c6;border-radius:50%;right:8%;top:40px;box-shadow:0 0 0 35px #e8e6de,0 0 0 70px #eeece5;z-index:-1}.eyebrow,.section-tag{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--green)}.hero p{font-size:18px;max-width:660px}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}.btn{border:1px solid var(--ink);border-radius:3px;padding:11px 17px;background:transparent;color:var(--ink);font-weight:700;font-size:13px;transition:.2s}.btn:hover{transform:translateY(-2px);box-shadow:3px 3px 0 var(--ink)}.btn.primary{background:var(--green);border-color:var(--green);color:white}.btn.primary:hover{box-shadow:3px 3px 0 #9ab7a9}.hero-note{font:11px var(--mono);color:var(--muted);margin-top:48px}.hero-note span{color:var(--coral)}.pipeline-track{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:30px 0 18px}.pipeline-node{min-width:0;padding:15px 12px;background:var(--card);border:1px solid var(--line);border-radius:4px;cursor:pointer;font-size:12px;font-weight:700;transition:.2s}.pipeline-node:before{content:"0" counter(stage);counter-increment:stage;display:block;font:11px var(--mono);color:var(--coral);margin-bottom:14px}.pipeline-track{counter-reset:stage}.pipeline-node.active,.pipeline-node:hover{background:var(--green2);border-color:var(--green);transform:translateY(-3px)}.pipeline-arrow{display:none}.panel{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:24px;box-shadow:0 8px 24px #37372a08}.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.flex-between{display:flex;align-items:center;justify-content:space-between;gap:14px}.section-intro{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:27px}.section-intro p{max-width:550px;margin:0}.section-number{font:12px var(--mono);color:var(--coral)}.section-headline{max-width:720px}.metric-card{background:#f1f0e9;border:1px solid var(--line);border-radius:4px;padding:16px;text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.metric-value{font:500 26px var(--mono);color:var(--green);margin-top:7px}.metric-card code{display:inline-block;margin-top:8px;font-size:10px}.btn,button{border-radius:3px}input,select,textarea{background:#f4f2eb;color:var(--ink);border:1px solid #cbc9be;border-radius:3px;padding:11px 12px;width:100%;font:13px var(--mono)}input:focus,select:focus,textarea:focus{outline:2px solid #9ab7a9;border-color:var(--green)}textarea{resize:vertical}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--line)}th{font:11px var(--mono);text-transform:uppercase;color:var(--muted);background:#f2f0e9;position:sticky;top:0}td.mono{color:var(--green)}.table-scroll{max-height:390px;overflow:auto;border:1px solid var(--line);border-radius:4px}.token-output{display:flex;gap:8px;flex-wrap:wrap;min-height:100px;align-content:flex-start;margin-top:18px}.token-block{padding:9px 12px;background:#e6eee7;border:1px solid #c4d7c9;border-radius:3px;min-width:70px}.token-block.token-unknown{background:#f7e6df;border-color:#e6c1b3}.token-text{font:12px var(--mono);color:var(--ink)}.token-id{font:10px var(--mono);color:var(--muted);margin-top:3px}.vector-bar-container{display:flex;gap:3px;height:130px;align-items:flex-end;margin:22px 0;padding:8px;background:#f1f0e9;border:1px solid var(--line);border-radius:4px}.vector-bar{flex:1;background:var(--green);min-width:2px;max-width:18px;opacity:.88}.vector-bar.negative{background:var(--coral);align-self:flex-start}.label3d{position:absolute;transform:translate(-50%,-50%);font:10px var(--mono);color:#293b35;background:#fffdf6e8;border:1px solid #d6d3c8;border-radius:3px;padding:2px 5px;white-space:nowrap;pointer-events:none;z-index:3}.three-layout{display:grid;grid-template-columns:minmax(0,1fr) 245px;gap:14px}.three-shell{position:relative;min-width:0}#three-container{height:560px;position:relative;overflow:hidden;border:1px solid #d1cec3;border-radius:5px;background:#f0eee8;isolation:isolate}#three-container .three-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;touch-action:none}#labels-container{position:absolute;inset:0;z-index:2;pointer-events:none}.overlay-ui{position:relative;z-index:4;background:#fffdf6;border:1px solid var(--line);border-radius:5px;padding:20px;align-self:start}.overlay-ui h3{color:var(--green)}.overlay-ui button{width:100%;margin-top:9px}.webgl-fallback{padding:35px;color:var(--muted)}.sim-canvas{background:#f1f0e9!important;border:1px solid var(--line)!important;border-radius:4px!important;color:var(--ink)}.sim-canvas div{font-family:var(--mono)}.tooltip{border-bottom:1px dotted var(--green);cursor:help}.foot{padding:28px 0;color:var(--muted);font:11px var(--mono);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.pill{font:10px var(--mono);letter-spacing:.1em;padding:5px 8px;border:1px solid var(--line);color:var(--green);border-radius:2px}.inline-actions{display:flex;gap:8px;flex-wrap:wrap}.small-label{display:block;font:11px var(--mono);text-transform:uppercase;color:var(--muted);margin-bottom:7px}.hint{font-size:12px;color:var(--muted);margin-top:10px}
+@media(max-width:850px){.nav{display:none}.pipeline-track{grid-template-columns:repeat(3,1fr)}.three-layout{grid-template-columns:1fr}.overlay-ui{display:grid;grid-template-columns:1fr 1fr;gap:8px}.overlay-ui h3,.overlay-ui #ui-selected-word,.overlay-ui p{grid-column:1/-1}.overlay-ui button{margin:0}#three-container{height:470px}.hero:after{right:-180px;opacity:.55}}
+@media(max-width:620px){.container{padding:0 17px}section{padding:55px 0}.hero{padding:65px 0 45px}.grid-2,.grid-3{grid-template-columns:1fr}.pipeline-track{grid-template-columns:repeat(2,1fr)}.section-intro{display:block}.section-intro p{margin-top:10px}.panel{padding:17px}.flex-between{align-items:stretch;flex-direction:column}#three-container{height:390px}.overlay-ui{padding:12px}.foot{display:block}.foot span{display:block;margin:5px 0}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="container" style="display:flex;align-items:center;justify-content:space-between;width:100%"><div class="brand"><div class="brandmark">w.</div> WORDSPACE</div><nav class="nav"><a href="#pipeline">PIPELINE</a><a href="#vocabulary">VOCABULARY</a><a href="#tokenization">TOKENIZER</a><a href="#embedding">EMBEDDINGS</a><a href="#3d-explorer">3D SPACE</a></nav><span class="pill">FIELD NOTES / 01</span></div></header>
+<main>
+<section class="hero"><div class="container"><div class="eyebrow">A hands-on field guide to language models</div><h1>Give language<br> a shape you can <span style="color:var(--green)">explore.</span></h1><p>Words become tokens. Tokens become numbers. Numbers become geometry. Step through the machinery that helps a language model turn text into representations it can work with.</p><div class="hero-actions"><button class="btn primary" onclick="document.getElementById('pipeline').scrollIntoView()">Explore the process ↘</button><button class="btn" onclick="document.getElementById('3d-explorer').scrollIntoView()">Open 3D word map</button></div><div class="hero-note"><span>●</span> INTERACTIVE SANDBOX &nbsp; / &nbsp; NO ACCOUNT REQUIRED &nbsp; / &nbsp; EXPERIMENT FREELY</div></div></section>
+<section id="pipeline"><div class="container"><div class="section-intro"><div class="section-headline"><div class="section-tag">01 / The route</div><h2>From sentence to space</h2></div><p>Follow one piece of text as it passes through the main stages of an LLM's input representation.</p></div><div class="pipeline-track"><div class="pipeline-node" onclick="showPipelineStage(0)">Text input</div><div class="pipeline-node" onclick="showPipelineStage(1)">Tokenizer</div><div class="pipeline-node" onclick="showPipelineStage(2)">Token IDs</div><div class="pipeline-node" onclick="showPipelineStage(3)">Embedding lookup</div><div class="pipeline-node" onclick="showPipelineStage(4)">Position signal</div><div class="pipeline-node active" onclick="showPipelineStage(5)">Vector space</div></div><div class="panel" id="pipeline-details"><div class="section-number">SELECTED STAGE</div><h3 id="pipe-title">6. Vector Space</h3><p id="pipe-desc">The final numerical representation fed into the Transformer blocks, existing in a high-dimensional space.</p><div style="padding:14px;background:#f1f0e9;border-left:3px solid var(--green);font:12px var(--mono);overflow-wrap:anywhere"><span style="color:var(--muted)">INPUT → </span><span id="pipe-io">Final Input Tensor (Sequence Length × Dimension)</span></div></div></div></section>
+<section id="vocabulary"><div class="container"><div class="section-intro"><div class="section-headline"><div class="section-tag">02 / The lexicon</div><h2>Build a vocabulary</h2></div><p>A vocabulary is the model's lookup dictionary. Each token is assigned a unique integer ID.</p></div><div class="grid-2"><div class="panel"><h3>Add to the dictionary</h3><p>Enter one token or import a comma-separated list.</p><div class="flex-between"><input id="vocab-input" placeholder="e.g. spaceship" onkeypress="if(event.key==='Enter') addVocab()"><button class="btn primary" onclick="addVocab()">Add token +</button></div><textarea id="vocab-bulk" rows="3" placeholder="Paste several words: orbit, galaxy, satellite..." style="margin-top:10px"></textarea><button class="btn" style="margin-top:9px" onclick="bulkAddVocab()">Import list</button><hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><div class="flex-between"><div><div class="small-label">Vocabulary size</div><strong id="vocab-size" style="font:700 30px var(--display);color:var(--green)">28</strong></div><button class="btn" onclick="resetVocab()">Reset dictionary ↺</button></div></div><div class="panel"><div class="flex-between"><h3>Token register</h3><span class="pill">LIVE INDEX</span></div><div class="table-scroll"><table><thead><tr><th>Token ID</th><th>Token text</th><th>Action</th></tr></thead><tbody id="vocab-table-body"></tbody></table></div></div></div></div></section>
+<section id="tokenization"><div class="container"><div class="section-intro"><div class="section-headline"><div class="section-tag">03 / The tokenizer</div><h2>Watch text break apart</h2></div><p>Switch between word-level and character-level splitting. Known pieces receive their vocabulary ID; unseen pieces are marked unknown.</p></div><div class="panel"><div class="flex-between" style="margin-bottom:12px"><div style="max-width:220px"><label class="small-label" for="tokenize-strategy">Splitting strategy</label><select id="tokenize-strategy"><option value="word">Word-level</option><option value="char">Character-level</option></select></div><div class="inline-actions"><button class="btn" onclick="document.getElementById('tok-input').value='the cat sat on the mat';runTokenization()">Example A</button><button class="btn" onclick="document.getElementById('tok-input').value='machine learning is artificial intelligence';runTokenization()">Example B</button></div></div><textarea id="tok-input" rows="3" placeholder="Write a sentence to tokenize...">the cat sat on the mat</textarea><button class="btn primary" style="margin-top:12px" onclick="runTokenization()">Split into tokens →</button><div id="tok-output" class="token-output"></div><div class="grid-2" style="margin-top:20px"><div class="metric-card">Total tokens<div class="metric-value" id="tok-count">0</div></div><div class="metric-card">Character count<div class="metric-value" id="char-count">0</div></div></div><p class="hint">This is a simplified demonstration tokenizer, not the exact BPE or WordPiece tokenizer used in production LLMs.</p></div></div></section>
+<section id="embedding"><div class="container"><div class="section-intro"><div class="section-headline"><div class="section-tag">04 / The coordinates</div><h2>Inspect an embedding</h2></div><p>An embedding is a dense vector associated with a token. Explore its dimensions and see how the values vary.</p></div><div class="panel"><div class="flex-between"><div style="min-width:220px"><label class="small-label" for="embed-select">Choose a token</label><select id="embed-select" onchange="renderEmbeddingView()"></select></div><div style="min-width:180px"><label class="small-label" for="embed-dim">Vector dimensions</label><select id="embed-dim" onchange="state.dim=parseInt(this.value);generateAllVectors();renderEmbeddingView();update3DScene();"><option value="8">8 dimensions</option><option value="16">16 dimensions</option><option value="32">32 dimensions</option><option value="64" selected>64 dimensions</option></select></div></div><h3 id="embed-word-title" style="margin-top:28px;color:var(--green)">Vector details</h3><div class="vector-bar-container" id="embed-bars"></div><div class="small-label">Raw vector values</div><div id="embed-raw" style="padding:14px;background:#f1f0e9;border:1px solid var(--line);border-radius:4px;font:11px var(--mono);color:var(--muted);overflow-wrap:anywhere;max-height:145px;overflow:auto"></div><p class="hint">Illustrative vectors use seeded values and semantic anchor points so the geometry is repeatable. Real model embeddings are learned from data.</p></div></div></section>
+<section id="3d-explorer"><div class="container"><div class="section-intro"><div class="section-headline"><div class="section-tag">05 / The word map</div><h2>Explore the 3D space</h2></div><p>Each dot is a word projected into three dimensions. Drag to orbit, scroll to zoom, and select a point to inspect it.</p></div><div class="three-layout"><div class="three-shell"><div id="three-container"><div id="labels-container"></div></div></div><aside class="overlay-ui"><div class="section-number">POINT INSPECTOR</div><h3>Selected token</h3><div id="ui-selected-word" class="mono" style="font-size:18px;color:var(--green);margin:14px 0">Select a point</div><p style="font-size:12px">Click any point in the map to reveal its token and ID. Orbit the scene to inspect clusters from different angles.</p><button class="btn" onclick="resetCamera()">Recenter camera ↺</button><button class="btn" onclick="toggleLabels()">Show / hide labels</button><div style="border-top:1px solid var(--line);margin-top:18px;padding-top:15px"><div class="small-label">Navigation</div><p style="font-size:11px;margin:0">Drag · Rotate<br>Scroll · Zoom<br>Right-drag · Pan</p></div></aside></div><p class="hint">The 3D coordinates use the first three dimensions of the demo vectors. This is an educational projection, not a trained model's full semantic space.</p></div></section>
+<section id="similarity"><div class="container"><div class="section-intro"><div class="section-headline"><div class="section-tag">06 / The geometry</div><h2>Measure similarity</h2></div><p>Compare two word vectors using cosine similarity, Euclidean distance, and dot product.</p></div><div class="panel"><div class="grid-2"><div><label class="small-label">Word A</label><select id="sim-word-a" onchange="calculateSimilarity()"></select></div><div><label class="small-label">Word B</label><select id="sim-word-b" onchange="calculateSimilarity()"></select></div></div><div class="grid-3" style="margin-top:20px"><div class="metric-card">Cosine similarity<div class="metric-value" id="sim-cosine">—</div><code>cos θ = A·B / |A||B|</code></div><div class="metric-card">Euclidean distance<div class="metric-value" id="sim-euclid">—</div><code>d = √Σ(Aᵢ − Bᵢ)²</code></div><div class="metric-card">Dot product<div class="metric-value" id="sim-dot">—</div><code>A · B = Σ(Aᵢ × Bᵢ)</code></div></div><div style="margin-top:24px"><label class="small-label">Cosine scale · −1 to +1</label><div style="height:13px;background:linear-gradient(90deg,#d66b4f,#e5dfd0,#176e61);border-radius:20px;position:relative"><div id="sim-marker" style="position:absolute;width:3px;height:23px;background:var(--ink);top:-5px;left:50%;transform:translateX(-50%);transition:left .25s"></div></div></div></div></div></section>
+<section id="simulator"><div class="container"><div class="section-intro"><div class="section-headline"><div class="section-tag">07 / Put it together</div><h2>Run the full pipeline</h2></div><p>Step through tokenization, vocabulary lookup, embedding retrieval, and positional encoding.</p></div><div class="panel"><div class="flex-between" style="margin-bottom:14px"><input type="text" id="sim-input" value="The artificial neural network learns" style="flex:1"><button class="btn primary" onclick="runSimulation()">Run pipeline ▶</button></div><div id="sim-canvas" class="sim-canvas" style="padding:22px;min-height:280px;position:relative;overflow:auto"><div style="text-align:center;color:var(--muted);margin-top:75px">Your transformation trace will appear here.</div></div></div></div></section>
+</main>
+<footer class="container foot"><span>WORDSPACE / INTERACTIVE LEARNING TOOL</span><span>Built for curiosity · Single-file deployment</span></footer>
+<script>
+
+        /**
+         * VECTOR LAB - Application State & Core Logic
+         */
+        
+        // --- 1. Global State ---
+        const state = {
+            vocab: [],
+            wordToId: {},
+            idToWord: {},
+            nextId: 1000,
+            dim: 64,
+            vectors: {}, // word -> Float32Array
+            
+            // Default Semantic Anchors (to ensure meaningful clustering in 3D projection)
+            // We encode primary semantic axes in dimensions 0, 1, 2.
+            anchors: {
+                "king":       [0.8, 0.5, 0.2],
+                "queen":      [0.8, 0.5, -0.2],
+                "man":        [0.6, 0.3, 0.2],
+                "woman":      [0.6, 0.3, -0.2],
+                "boy":        [0.5, 0.1, 0.2],
+                "girl":       [0.5, 0.1, -0.2],
+                "dog":        [-0.5, 0.7, 0.1],
+                "cat":        [-0.4, 0.8, 0.2],
+                "animal":     [-0.3, 0.9, 0.15],
+                "apple":      [0.1, -0.7, 0.8],
+                "orange":     [0.1, -0.6, 0.9],
+                "fruit":      [0.15, -0.8, 0.85],
+                "machine":    [-0.8, -0.6, -0.6],
+                "learning":   [-0.7, -0.7, -0.5],
+                "intelligence":[-0.9, -0.8, -0.4],
+                "artificial": [-0.85, -0.7, -0.7],
+                "neural":     [-0.75, -0.65, -0.55],
+                "network":    [-0.7, -0.6, -0.6],
+                "the":        [0, 0, 0],
+                "a":          [0, 0, 0],
+                "is":         [0, 0, 0],
+                "on":         [0, 0, 0]
+            }
+        };
+
+        const defaultVocab = ["the", "cat", "sat", "on", "mat", "dog", "runs", "machine", "learning", "intelligence", "artificial", "language", "model", "neural", "network", "transformer", "king", "queen", "man", "woman", "apple", "orange", "a", "is", "boy", "girl", "animal", "fruit"];
+
+        // --- 2. Math & Seeded PRNG ---
+        // Simple hash function for strings
+        function hashString(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0; 
+            }
+            return hash;
+        }
+
+        // Mulberry32 PRNG
+        function seededRandom(a) {
+            let t = a += 0x6D2B79F5;
+            t = Math.imul(t ^ t >>> 15, t | 1);
+            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        }
+
+        function generateVectorForWord(word, dim) {
+            const vec = new Float32Array(dim);
+            const w = word.toLowerCase();
+            const seedBase = hashString(w);
+            
+            // If it's a known semantic anchor, use its base for dims 0,1,2, add tiny noise
+            if (state.anchors[w]) {
+                const anchor = state.anchors[w];
+                for (let i = 0; i < dim; i++) {
+                    if (i < 3) {
+                        vec[i] = anchor[i] + (seededRandom(seedBase + i) - 0.5) * 0.1; // base + noise
+                    } else {
+                        vec[i] = (seededRandom(seedBase + i) * 2) - 1; // random [-1, 1]
+                    }
+                }
+            } else {
+                // Completely random based on seed
+                for (let i = 0; i < dim; i++) {
+                    vec[i] = (seededRandom(seedBase + i) * 2) - 1;
+                }
+            }
+            
+            // Normalize vector to unit length (important for cosine similarity)
+            let mag = 0;
+            for (let i = 0; i < dim; i++) mag += vec[i] * vec[i];
+            mag = Math.sqrt(mag);
+            if (mag > 0) {
+                for (let i = 0; i < dim; i++) vec[i] /= mag;
+            }
+            
+            return vec;
+        }
+
+        function generateAllVectors() {
+            state.vectors = {};
+            state.vocab.forEach(word => {
+                state.vectors[word] = generateVectorForWord(word, state.dim);
+            });
+        }
+
+        // Vector Math
+        function dotProduct(a, b) {
+            return a.reduce((sum, val, i) => sum + val * b[i], 0);
+        }
+        function magnitude(a) {
+            return Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+        }
+        function cosineSimilarity(a, b) {
+            const magA = magnitude(a);
+            const magB = magnitude(b);
+            if (magA === 0 || magB === 0) return 0;
+            return dotProduct(a, b) / (magA * magB);
+        }
+        function euclideanDistance(a, b) {
+            return Math.sqrt(a.reduce((sum, val, i) => sum + Math.pow(val - b[i], 2), 0));
+        }
+
+        // --- 3. UI Updates & State Management ---
+        function initApp() {
+            resetVocab();
+            initThreeJS();
+            // Select first word for embeddings
+            if(state.vocab.length > 0) {
+                document.getElementById('embed-select').value = state.vocab[0];
+                renderEmbeddingView();
+            }
+        }
+
+        function resetVocab() {
+            state.vocab = [];
+            state.wordToId = {};
+            state.idToWord = {};
+            state.nextId = 1000;
+            
+            defaultVocab.forEach(w => _addSingleWord(w));
+            
+            updateVocabUI();
+            generateAllVectors();
+            updateDropdowns();
+            update3DScene();
+        }
+
+        function _addSingleWord(word) {
+            const w = word.trim().toLowerCase();
+            if (!w || state.wordToId[w]) return false;
+            
+            state.vocab.push(w);
+            state.wordToId[w] = state.nextId;
+            state.idToWord[state.nextId] = w;
+            state.nextId++;
+            return true;
+        }
+
+        function addVocab() {
+            const input = document.getElementById('vocab-input');
+            if (_addSingleWord(input.value)) {
+                postVocabUpdate();
+                input.value = '';
+            }
+        }
+
+        function bulkAddVocab() {
+            const input = document.getElementById('vocab-bulk');
+            const words = input.value.split(',').map(w => w.trim());
+            let added = false;
+            words.forEach(w => {
+                if (_addSingleWord(w)) added = true;
+            });
+            if (added) {
+                postVocabUpdate();
+                input.value = '';
+            }
+        }
+
+        function removeVocab(word) {
+            const id = state.wordToId[word];
+            delete state.wordToId[word];
+            delete state.idToWord[id];
+            state.vocab = state.vocab.filter(w => w !== word);
+            postVocabUpdate();
+        }
+
+        function postVocabUpdate() {
+            generateAllVectors();
+            updateVocabUI();
+            updateDropdowns();
+            update3DScene();
+        }
+
+        function updateVocabUI() {
+            document.getElementById('vocab-size').innerText = state.vocab.length;
+            const tbody = document.getElementById('vocab-table-body');
+            tbody.innerHTML = '';
+            
+            // Sort alphabetically for display
+            const sorted = [...state.vocab].sort();
+            
+            sorted.forEach(w => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="mono">${state.wordToId[w]}</td>
+                    <td>${w}</td>
+                    <td><button style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="removeVocab('${w}')">Remove</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateDropdowns() {
+            const selects = ['embed-select', 'sim-word-a', 'sim-word-b'];
+            const sorted = [...state.vocab].sort();
+            
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                const currentVal = el.value;
+                el.innerHTML = sorted.map(w => `<option value="${w}">${w}</option>`).join('');
+                if (sorted.includes(currentVal)) el.value = currentVal;
+            });
+            calculateSimilarity();
+        }
+
+        // --- 4. Pipeline Logic ---
+        const pipelineStages = [
+            { title: "1. Text Input", desc: "Raw sequence of characters. Before a model can understand meaning, it must parse the string.", io: `"The quick brown fox"` },
+            { title: "2. Tokenizer", desc: "Splits text into known chunks (words or subwords) defined in the vocabulary.", io: `["The", "quick", "brown", "fox"]` },
+            { title: "3. Token IDs", desc: "Maps text tokens to integer IDs. The model's actual input is a tensor of these integers.", io: `[1014, 5293, 2031, 840]` },
+            { title: "4. Embedding", desc: "Looks up the dense continuous vector (embedding) for each token ID. This gives tokens spatial geometry.", io: `[[0.2, -0.4...], [0.8, 0.1...]]` },
+            { title: "5. Positional Encoding", desc: "Adds position vectors to the embeddings so the model knows the order of tokens, since self-attention is naturally order-invariant.", io: `Embedding + sin/cos position vectors` },
+            { title: "6. Vector Space", desc: "The final numerical representation fed into the Transformer blocks, existing in a high-dimensional space.", io: `Final Input Tensor (Sequence Length × Dimension)` }
+        ];
+
+        function showPipelineStage(idx) {
+            document.querySelectorAll('.pipeline-node').forEach((n, i) => {
+                n.className = i === idx ? 'pipeline-node active' : 'pipeline-node';
+            });
+            document.getElementById('pipe-title').innerText = pipelineStages[idx].title;
+            document.getElementById('pipe-desc').innerText = pipelineStages[idx].desc;
+            document.getElementById('pipe-io').innerText = pipelineStages[idx].io;
+        }
+
+        // --- 5. Tokenizer Logic ---
+        function runTokenization() {
+            const text = document.getElementById('tok-input').value.trim();
+            const strategy = document.getElementById('tokenize-strategy').value;
+            const outContainer = document.getElementById('tok-output');
+            outContainer.innerHTML = '';
+            
+            if(!text) return;
+
+            let tokens = [];
+            if (strategy === 'word') {
+                // Simple word split keeping punctuation separate
+                const rawTokens = text.match(/\w+|[^\w\s]/g) || [];
+                tokens = rawTokens.map(t => t.toLowerCase());
+            } else if (strategy === 'char') {
+                tokens = text.split('').filter(c => c.trim() !== '').map(c => c.toLowerCase());
+            }
+
+            document.getElementById('tok-count').innerText = tokens.length;
+            document.getElementById('char-count').innerText = text.length;
+
+            tokens.forEach(t => {
+                const isKnown = state.wordToId[t] !== undefined;
+                const id = isKnown ? state.wordToId[t] : '[UNK]';
+                
+                const block = document.createElement('div');
+                block.className = `token-block ${isKnown ? 'token-known' : 'token-unknown'}`;
+                block.innerHTML = `
+                    <div class="token-text">${t}</div>
+                    <div class="token-id">${id}</div>
+                `;
+                outContainer.appendChild(block);
+            });
+        }
+
+        // --- 6. Embedding View Logic ---
+        function renderEmbeddingView() {
+            const word = document.getElementById('embed-select').value;
+            if(!word || !state.vectors[word]) return;
+            
+            const vec = state.vectors[word];
+            document.getElementById('embed-word-title').innerText = `Vector for "${word}" (ID: ${state.wordToId[word]})`;
+            
+            const bars = document.getElementById('embed-bars');
+            bars.innerHTML = '';
+            
+            // Show up to 64 dims visually
+            const visualDims = Math.min(vec.length, 64);
+            for(let i=0; i<visualDims; i++) {
+                const val = vec[i];
+                const bar = document.createElement('div');
+                bar.className = 'vector-bar' + (val < 0 ? ' negative' : '');
+                // scale magnitude for height, max val is roughly 1
+                const height = Math.min(Math.abs(val) * 100, 100) + 2; 
+                bar.style.height = `${height}%`;
+                bar.title = `Dim ${i}: ${val.toFixed(4)}`;
+                bars.appendChild(bar);
+            }
+            
+            document.getElementById('embed-raw').innerText = `[${Array.from(vec).map(v => v.toFixed(4)).join(', ')}]`;
+        }
+
+
+        // --- 7. Three.js 3D Explorer (responsive + robust) ---
+        let scene, camera, renderer, controls, pointsGroup;
+        let raycaster, mouse;
+        const labels = [];
+        let showLabels = true;
+        let resizeObserver;
+
+        function initThreeJS() {
+            const container = document.getElementById('three-container');
+            if (!container || !window.THREE || !THREE.OrbitControls) {
+                container.innerHTML = '<div class="webgl-fallback">3D view needs WebGL and the Three.js libraries. Try a modern browser with hardware acceleration enabled.</div>';
+                return;
+            }
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0eee8);
+            scene.fog = new THREE.Fog(0xf0eee8, 7, 18);
+
+            camera = new THREE.PerspectiveCamera(48, 1, 0.1, 100);
+            camera.position.set(4.8, 3.4, 5.8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.setClearColor(0xf0eee8, 1);
+            renderer.domElement.className = 'three-canvas';
+            container.prepend(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.075;
+            controls.minDistance = 2.4;
+            controls.maxDistance = 13;
+            controls.target.set(0, 0, 0);
+
+            const ambient = new THREE.HemisphereLight(0xffffff, 0xb8b3a7, 1.15);
+            scene.add(ambient);
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
+            keyLight.position.set(4, 7, 5);
+            scene.add(keyLight);
+
+            const grid = new THREE.GridHelper(5.5, 22, 0xc8c3b8, 0xdcd8cf);
+            grid.position.y = -1.45;
+            scene.add(grid);
+            const axes = new THREE.AxesHelper(1.6);
+            axes.material.transparent = true;
+            axes.material.opacity = 0.35;
+            scene.add(axes);
+
+            pointsGroup = new THREE.Group();
+            scene.add(pointsGroup);
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            container.addEventListener('pointerup', onMouseClick);
+            if (resizeObserver) resizeObserver.disconnect();
+            resizeObserver = new ResizeObserver(resizeThree);
+            resizeObserver.observe(container);
+            resizeThree();
+            animate();
+            update3DScene();
+        }
+
+
+        function resizeThree() {
+            const container = document.getElementById('three-container');
+            if (!renderer || !camera || !container) return;
+            const width = Math.max(1, container.clientWidth);
+            const height = Math.max(1, container.clientHeight);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height, false);
+        }
+
+        function update3DScene() {
+            if (!scene || !pointsGroup) return;
+            while (pointsGroup.children.length) {
+                const obj = pointsGroup.children.pop();
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                    else obj.material.dispose();
+                }
+            }
+            const labelsContainer = document.getElementById('labels-container');
+            labelsContainer.innerHTML = '';
+            labels.length = 0;
+
+            const geometry = new THREE.SphereGeometry(0.065, 20, 16);
+            const palette = [0x167c80, 0x8064a8, 0xd16a45, 0x547a56];
+            state.vocab.forEach(word => {
+                const vec = state.vectors[word];
+                if (!vec) return;
+                const x = (vec[0] || 0) * 2.25;
+                const y = (vec[1] || 0) * 2.25;
+                const z = (vec[2] || 0) * 2.25;
+                const color = palette[
+                    state.anchors[word] ? (
+                        ['king','queen','man','woman','boy','girl'].includes(word) ? 2 :
+                        ['dog','cat','animal'].includes(word) ? 3 :
+                        ['apple','orange','fruit'].includes(word) ? 1 : 0
+                    ) : 0
+                ];
+                const material = new THREE.MeshStandardMaterial({
+                    color, roughness: 0.42, metalness: 0.04,
+                    emissive: color, emissiveIntensity: 0.07
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(x, y, z);
+                mesh.userData = { word, id: state.wordToId[word] };
+                pointsGroup.add(mesh);
+
+                const label = document.createElement('div');
+                label.className = 'label3d';
+                label.textContent = word;
+                labelsContainer.appendChild(label);
+                labels.push({ element: label, pos: new THREE.Vector3(x, y + 0.13, z) });
+            });
+        }
+
+        function onMouseClick(event) {
+            if (!renderer || !camera || !pointsGroup) return;
+            if (event.target.closest('.overlay-ui')) return;
+            const canvas = renderer.domElement;
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(pointsGroup.children, false);
+            if (intersects.length) {
+                const obj = intersects[0].object;
+                const word = obj.userData.word;
+                document.getElementById('ui-selected-word').textContent =
+                    `${word}  ·  ID ${obj.userData.id}`;
+                const select = document.getElementById('embed-select');
+                if ([...select.options].some(o => o.value === word)) {
+                    select.value = word;
+                    renderEmbeddingView();
+                }
+            }
+        }
+
+        function resetCamera() {
+            if (!camera || !controls) return;
+            camera.position.set(4.8, 3.4, 5.8);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        function toggleLabels() {
+            showLabels = !showLabels;
+            const el = document.getElementById('labels-container');
+            if (el) el.style.display = showLabels ? 'block' : 'none';
+        }
+
+        function animate() {
+            if (!renderer) return;
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (showLabels && camera) {
+                const container = document.getElementById('three-container');
+                const width = container.clientWidth, height = container.clientHeight;
+                labels.forEach(label => {
+                    const p = label.pos.clone().project(camera);
+                    const visible = p.z > -1 && p.z < 1;
+                    label.element.style.display = visible ? 'block' : 'none';
+                    if (visible) {
+                        label.element.style.left = `${(p.x * .5 + .5) * width}px`;
+                        label.element.style.top = `${(-p.y * .5 + .5) * height}px`;
+                    }
+                });
+            }
+            renderer.render(scene, camera);
+        }
+
+        // --- 8. Similarity Lab ---
+        function calculateSimilarity() {
+            const wa = document.getElementById('sim-word-a').value;
+            const wb = document.getElementById('sim-word-b').value;
+            
+            if(!wa || !wb || !state.vectors[wa] || !state.vectors[wb]) return;
+            
+            const va = state.vectors[wa];
+            const vb = state.vectors[wb];
+            
+            const cosSim = cosineSimilarity(va, vb);
+            const eucDist = euclideanDistance(va, vb);
+            const dot = dotProduct(va, vb);
+            
+            document.getElementById('sim-cosine').innerText = cosSim.toFixed(4);
+            document.getElementById('sim-euclid').innerText = eucDist.toFixed(4);
+            document.getElementById('sim-dot').innerText = dot.toFixed(4);
+            
+            // Update scale marker (-1 to 1 maps to 0% to 100%)
+            const percent = ((cosSim + 1) / 2) * 100;
+            document.getElementById('sim-marker').style.left = `${percent}%`;
+        }
+
+        // --- 9. Pipeline Simulator ---
+        async function runSimulation() {
+            const input = document.getElementById('sim-input').value.trim();
+            const canvas = document.getElementById('sim-canvas');
+            if(!input) return;
+            
+            // Helpers
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+            const log = (msg, color='var(--text-main)') => {
+                const d = document.createElement('div');
+                d.style.color = color;
+                d.style.marginBottom = '0.5rem';
+                d.innerHTML = msg;
+                canvas.appendChild(d);
+                canvas.scrollTop = canvas.scrollHeight;
+            };
+
+            canvas.innerHTML = '';
+            
+            log(`[STAGE 1] Raw Text Input:`, 'var(--accent-cyan)');
+            log(`> "${input}"\n`);
+            await sleep(1000);
+            
+            log(`[STAGE 2] Tokenization (Word-level fallback):`, 'var(--accent-cyan)');
+            const words = input.toLowerCase().match(/\w+|[^\w\s]/g) || [];
+            log(`> Tokens: [${words.map(w=>`"${w}"`).join(', ')}]\n`);
+            await sleep(1500);
+            
+            log(`[STAGE 3] Vocabulary Lookup (Token IDs):`, 'var(--accent-cyan)');
+            const ids = words.map(w => state.wordToId[w] || 9999); // 9999 for UNK
+            log(`> IDs: [${ids.join(', ')}]\n`);
+            await sleep(1500);
+            
+            log(`[STAGE 4] Embedding Lookup (Dim: ${state.dim}):`, 'var(--accent-cyan)');
+            log(`> Retrieving vectors for sequence...`);
+            const seqVectors = [];
+            words.forEach(w => {
+                const vec = state.vectors[w] || generateVectorForWord(w, state.dim);
+                seqVectors.push(vec);
+            });
+            await sleep(1000);
+            // Display first few dims of first token
+            log(`> Token 0 ("${words[0]}") embedding: [${seqVectors[0].slice(0,4).map(v=>v.toFixed(3)).join(', ')} ...]\n`, 'var(--text-muted)');
+            await sleep(1500);
+
+            log(`[STAGE 5] Positional Encoding:`, 'var(--accent-cyan)');
+            log(`> Adding sine/cosine positional vectors to preserve sequence order...`);
+            
+            // Simple Pos Encoding visualization
+            const finalVectors = [];
+            for(let pos=0; pos<words.length; pos++) {
+                const finalVec = new Float32Array(state.dim);
+                for(let i=0; i<state.dim; i++) {
+                    // standard PE formula: sin/cos(pos / 10000^(2i/d_model))
+                    const val = (i % 2 === 0) 
+                        ? Math.sin(pos / Math.pow(10000, i / state.dim))
+                        : Math.cos(pos / Math.pow(10000, (i-1) / state.dim));
+                    finalVec[i] = seqVectors[pos][i] + val;
+                }
+                finalVectors.push(finalVec);
+            }
+            await sleep(1500);
+            log(`> Token 0 ("${words[0]}") + Pos 0: [${finalVectors[0].slice(0,4).map(v=>v.toFixed(3)).join(', ')} ...]\n`, 'var(--text-muted)');
+            await sleep(1500);
+
+            log(`[STAGE 6] Final Input Tensor:`, 'var(--accent-violet)');
+            log(`> Shape: [Batch Size: 1, Sequence Length: ${words.length}, Embedding Dim: ${state.dim}]`);
+            log(`> Ready for Transformer Self-Attention blocks.`);
+            
+            const matrixContainer = document.createElement('div');
+            matrixContainer.style.marginTop = '1rem';
+            matrixContainer.style.display = 'grid';
+            matrixContainer.style.gridTemplateColumns = `auto repeat(${Math.min(state.dim, 8)}, 1fr) auto`;
+            matrixContainer.style.gap = '2px';
+            matrixContainer.style.fontSize = '0.75rem';
+            matrixContainer.style.opacity = '0.7';
+            
+            // Header
+            matrixContainer.innerHTML += `<div>Token</div>`;
+            for(let i=0; i<Math.min(state.dim, 8); i++) matrixContainer.innerHTML += `<div>D${i}</div>`;
+            matrixContainer.innerHTML += `<div>...</div>`;
+            
+            // Rows
+            words.forEach((w, r) => {
+                matrixContainer.innerHTML += `<div style="color:var(--accent-cyan)">${w}</div>`;
+                for(let i=0; i<Math.min(state.dim, 8); i++) {
+                    const val = finalVectors[r][i].toFixed(2);
+                    const color = val > 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+                    matrixContainer.innerHTML += `<div style="color:${color}">${val}</div>`;
+                }
+                matrixContainer.innerHTML += `<div>...</div>`;
+            });
+            canvas.appendChild(matrixContainer);
+        }
+
+        // Initialize Everything on Load
+        window.onload = initApp;
+
+    
+</script>
+</body></html>
